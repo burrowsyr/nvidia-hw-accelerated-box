@@ -14,9 +14,11 @@ EOF
 
 update-initramfs -u
 
-curl -O http://us.download.nvidia.com/XFree86/Linux-x86_64/367.57/NVIDIA-Linux-x86_64-367.57.run
-chmod +x ./NVIDIA-Linux-x86_64-*.run
-./NVIDIA-Linux-x86_64-*.run -q -a -n -X -s
+NVIDIA_DRIVER=384.111
+
+curl -O http://us.download.nvidia.com/XFree86/Linux-x86_64/${NVIDIA_DRIVER}/NVIDIA-Linux-x86_64-${NVIDIA_DRIVER}.run
+chmod +x ./NVIDIA-Linux-x86_64-${NVIDIA_DRIVER}.run
+./NVIDIA-Linux-x86_64-${NVIDIA_DRIVER}.run -q -a -n -X -s
 
 # xorg conf generated via nvidia-xconfig --allow-empty-initial-configuration
 # overwriting xorg.conf adding the BusID where the video card is installed
@@ -80,19 +82,20 @@ Section "Screen"
 EndSection
 EOF
 
-# Docker
-apt-key adv --keyserver hkp://p80.pool.sks-keyservers.net:80 --recv-keys 58118E89F3A912897C070ADBF76221572C52609D
-apt-add-repository 'deb https://apt.dockerproject.org/repo ubuntu-xenial main'
-apt-get update -y
-apt-get install -y docker-engine
-# 'systemctl status docker' to check the service status
-# allow docker to be used without sudo - THIS REQUIRES TO LOGOUT AND LOGIN AGAIN!!!
-usermod -aG docker ubuntu # assuming "ubuntu" is the user name
+# Dockersudo apt-get install apt-transport-https ca-certificates curl software-properties-common
+curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo apt-key add -
+add-apt-repository "deb [arch=amd64] https://download.docker.com/linux/ubuntu xenial stable"
+apt-get update
+apt-get install docker-ce -y
 
-# Nvidia docker https://github.com/NVIDIA/nvidia-docker/wiki
-export NVIDIADOCKER_VERSION=1.0.1
-wget -P /tmp https://github.com/NVIDIA/nvidia-docker/releases/download/v${NVIDIADOCKER_VERSION}/nvidia-docker_${NVIDIADOCKER_VERSION}-1_amd64.deb
-dpkg -i /tmp/nvidia-docker*.deb && rm /tmp/nvidia-docker*.deb
+# 'systemctl status docker' to check the service status
+# allow docker to be used without - THIS REQUIRES TO LOGOUT AND LOGIN AGAIN!!!
+usermod -aG docker ubuntu # assuming "ubuntu" is the user name
+curl -s -L https://nvidia.github.io/nvidia-docker/gpgkey | apt-key add -
+distribution=$(. /etc/os-release;echo $ID$VERSION_ID)
+curl -s -L https://nvidia.github.io/nvidia-docker/$distribution/nvidia-docker.list | tee /etc/apt/sources.list.d/nvidia-docker.list
+apt-get update
+apt-get install -y nvidia-docker2
 # Test nvidia-smi
 # nvidia-docker run --rm nvidia/cuda nvidia-smi
 
